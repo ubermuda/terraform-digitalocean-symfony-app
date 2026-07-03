@@ -37,10 +37,11 @@ resource "digitalocean_database_user" "app" {
 }
 
 locals {
-  # ${db.DATABASE_URL} is an App Platform runtime binding from the attached
-  # database component named "db" — NOT a Terraform interpolation, hence $${...}.
+  # ${<db-component>.DATABASE_URL} is an App Platform runtime binding from the
+  # attached database component — NOT a Terraform interpolation, hence the $${...}
+  # escaping around the literal binding. The component name is interpolated in.
   # DO's binding already carries ?sslmode=require, so params are appended with &.
-  database_url = "$${db.DATABASE_URL}&serverVersion=16&charset=utf8"
+  database_url = "$${${var.database_component_name}.DATABASE_URL}&serverVersion=16&charset=utf8"
 
   default_uri = var.default_uri != "" ? var.default_uri : (
     var.custom_domain != "" ? "https://${var.custom_domain}" : ""
@@ -100,7 +101,7 @@ resource "digitalocean_app" "app" {
 
     # ── Web service: nginx + php-fpm from the prebuilt prod image ────────────
     service {
-      name               = "web"
+      name               = var.service_component_name
       instance_size_slug = var.instance_size_slug
       instance_count     = var.instance_count
       http_port          = var.http_port
@@ -170,7 +171,7 @@ resource "digitalocean_app" "app" {
     ingress {
       rule {
         component {
-          name = "web"
+          name = var.service_component_name
         }
         match {
           path {
@@ -182,7 +183,7 @@ resource "digitalocean_app" "app" {
 
     # ── Attach the per-app database on the shared cluster ────────────────────
     database {
-      name         = "db"
+      name         = var.database_component_name
       engine       = "PG"
       production   = true
       cluster_name = data.digitalocean_database_cluster.shared.name

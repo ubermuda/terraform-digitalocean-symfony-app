@@ -107,6 +107,28 @@ variable "db_user" {
 }
 
 # ---------------------------------------------------------------------------
+# App Platform component names
+#
+# App Platform will NOT rename a database component in a single spec change
+# ("cannot create and delete a database in a single spec change"), and renaming
+# the service also churns ingress. When adopting an EXISTING app into this
+# module, set these to the app's current component names so the migration is a
+# no-op rename. For new apps, leave the defaults.
+# ---------------------------------------------------------------------------
+
+variable "service_component_name" {
+  type        = string
+  description = "Name of the web service component in the app spec. Set to the existing name when migrating an app already deployed under a different component name."
+  default     = "web"
+}
+
+variable "database_component_name" {
+  type        = string
+  description = "Name of the database component in the app spec (also the binding prefix used to build DATABASE_URL). Set to the existing name when migrating; App Platform cannot rename a database component in one step."
+  default     = "db"
+}
+
+# ---------------------------------------------------------------------------
 # Migrations
 # ---------------------------------------------------------------------------
 
