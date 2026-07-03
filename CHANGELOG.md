@@ -4,6 +4,23 @@ All notable changes to this module are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are the git
 tags consumers pin via `?ref=`.
 
+## [1.4.0] - 2026-07-03
+
+### Added
+
+- `database_server_version` variable (default `18`) controlling the
+  `serverVersion` hint appended to the components' `DATABASE_URL`.
+
+### Fixed
+
+- `DATABASE_URL`'s `serverVersion` was hardcoded to `16` while the default shared
+  cluster runs PostgreSQL 18, so Doctrine ran against a stale platform version.
+  It now defaults to `18` (matching the default cluster) and is overridable via
+  `database_server_version`. **Behavior change:** existing deployments that relied
+  on the hardcoded `16` will see `serverVersion` become `18` on the next apply;
+  consumers on a non-18 cluster must set `database_server_version` to their major
+  version.
+
 ## [1.3.0] - 2026-07-02
 
 ### Added

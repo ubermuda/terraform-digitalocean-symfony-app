@@ -47,7 +47,7 @@ locals {
   # attached database component — NOT a Terraform interpolation, hence the $${...}
   # escaping around the literal binding. The component name is interpolated in.
   # DO's binding already carries ?sslmode=require, so params are appended with &.
-  database_url = "$${${var.database_component_name}.DATABASE_URL}&serverVersion=16&charset=utf8"
+  database_url = "$${${var.database_component_name}.DATABASE_URL}&serverVersion=${var.database_server_version}&charset=utf8"
 
   default_uri = var.default_uri != "" ? var.default_uri : (
     var.custom_domain != "" ? "https://${var.custom_domain}" : ""
