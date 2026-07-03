@@ -109,6 +109,12 @@ variable "db_user" {
   description = "Per-app database user created on the shared cluster. Defaults to the database name (db_name)."
 }
 
+variable "database_server_version" {
+  type        = string
+  default     = "18"
+  description = "PostgreSQL major version advertised to Doctrine via the DATABASE_URL serverVersion parameter. Must match the managed cluster's engine version — the default shared cluster runs PG 18. Doctrine uses it to skip a version-detection round-trip and to select platform features; under-stating it is safe, over-stating it (a higher version than the server actually runs) can break. Set to your cluster's major version if it is not 18."
+}
+
 # ---------------------------------------------------------------------------
 # App Platform component names
 #

@@ -73,6 +73,7 @@ The image is **not** built by App Platform — build and push it yourself (e.g. 
 | `registry_credentials` | | `""` | Required for GHCR/private Docker Hub |
 | `image_tag` | | `prod` | |
 | `db_cluster_name` | | `app-22613a04-…` | The shared cluster (name = the app-… string) |
+| `database_server_version` | | `18` | PG major version for `DATABASE_URL`'s `serverVersion`; match the cluster (default cluster is PG 18) |
 | `service_component_name` / `database_component_name` | | `web` / `db` | Set to existing names when adopting a deployed app |
 | `enable_predeploy_migrations` | | `false` | Turn on after first-deploy bootstrap |
 | `custom_domain` / `domain_zone` / `default_uri` | | `""` | Optional custom domain |
