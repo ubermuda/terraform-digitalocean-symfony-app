@@ -4,7 +4,7 @@
 
 variable "app_name" {
   type        = string
-  description = "App Platform application name."
+  description = "App Platform application name. Also the default for image_repository, db_name (hyphens->underscores), and db_user — so for a new app this is often the only identifier you set."
 }
 
 variable "region" {
@@ -36,7 +36,8 @@ variable "registry" {
 
 variable "image_repository" {
   type        = string
-  description = "Image repository name within the registry."
+  default     = null
+  description = "Image repository name within the registry. Defaults to app_name."
 }
 
 variable "image_tag" {
@@ -98,12 +99,14 @@ variable "db_cluster_name" {
 
 variable "db_name" {
   type        = string
-  description = "Per-app database created on the shared cluster. Give each app its own so siblings don't collide. Postgres identifier: use underscores, not hyphens."
+  default     = null
+  description = "Per-app database created on the shared cluster. Defaults to app_name with hyphens turned into underscores (a valid Postgres identifier). Each app gets its own so siblings don't collide."
 }
 
 variable "db_user" {
   type        = string
-  description = "Per-app database user created on the shared cluster."
+  default     = null
+  description = "Per-app database user created on the shared cluster. Defaults to the database name (db_name)."
 }
 
 # ---------------------------------------------------------------------------

@@ -20,7 +20,7 @@ data "digitalocean_database_cluster" "shared" {
 # hand). prevent_destroy must be a literal — it cannot be a variable.
 resource "digitalocean_database_db" "app" {
   cluster_id = data.digitalocean_database_cluster.shared.id
-  name       = var.db_name
+  name       = local.db_name
 
   lifecycle {
     prevent_destroy = true
@@ -29,7 +29,7 @@ resource "digitalocean_database_db" "app" {
 
 resource "digitalocean_database_user" "app" {
   cluster_id = data.digitalocean_database_cluster.shared.id
-  name       = var.db_user
+  name       = local.db_user
 
   lifecycle {
     prevent_destroy = true
@@ -37,6 +37,12 @@ resource "digitalocean_database_user" "app" {
 }
 
 locals {
+  # A new consumer only needs to set app_name — the image repo and DB
+  # names default off it. All overridable via their own variables.
+  image_repository = coalesce(var.image_repository, var.app_name)
+  db_name          = coalesce(var.db_name, replace(var.app_name, "-", "_"))
+  db_user          = coalesce(var.db_user, local.db_name)
+
   # ${<db-component>.DATABASE_URL} is an App Platform runtime binding from the
   # attached database component — NOT a Terraform interpolation, hence the $${...}
   # escaping around the literal binding. The component name is interpolated in.
@@ -109,7 +115,7 @@ resource "digitalocean_app" "app" {
       image {
         registry_type        = var.registry_type
         registry             = var.registry_type == "DOCR" ? null : var.registry
-        repository           = var.image_repository
+        repository           = local.image_repository
         tag                  = var.image_tag
         registry_credentials = local.registry_credentials
 
@@ -149,7 +155,7 @@ resource "digitalocean_app" "app" {
         image {
           registry_type        = var.registry_type
           registry             = var.registry_type == "DOCR" ? null : var.registry
-          repository           = var.image_repository
+          repository           = local.image_repository
           tag                  = var.image_tag
           registry_credentials = local.registry_credentials
         }

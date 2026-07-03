@@ -18,24 +18,26 @@ provider "digitalocean" {
 
 # main.tf (root)
 module "app" {
-  source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v1.0.0"
+  source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v1.3.0"
 
-  app_name         = "my-app"
-  image_repository = "my-app"
-  db_name          = "my_app"   # unique per app on the shared cluster
-  db_user          = "my_app"
+  app_name = "my-app" # image repo + db name/user default off this
 
-  registry_credentials = var.registry_credentials  # GHCR "user:PAT"
+  registry_credentials = var.registry_credentials # GHCR "user:PAT"
   app_secret           = var.app_secret
   app_encryption_key   = var.app_encryption_key
 
   # Optional:
+  # image_repository            = "..."   # defaults to app_name
+  # db_name / db_user           = "..."   # default off app_name (hyphens->underscores)
   # custom_domain               = "app.example.com"
   # domain_zone                 = "example.com"
   # enable_predeploy_migrations = true
   # extra_env = { APP_MULTITENANT = { value = "1" } }
 }
 ```
+
+For a new app, `app_name` + the three secrets is all you need — everything else
+has a default. Then run the one-time DB bootstrap (`just tf-db-bootstrap`).
 
 Always pin `?ref=` to a tag or commit — never track a moving branch. A complete,
 validatable root is in [`examples/complete/`](examples/complete).
@@ -62,15 +64,16 @@ The image is **not** built by App Platform — build and push it yourself (e.g. 
 
 | Name | Required | Default | Notes |
 |---|---|---|---|
-| `app_name` | ✓ | — | App Platform app name |
-| `image_repository` | ✓ | — | Repo within the registry |
-| `db_name`, `db_user` | ✓ | — | Unique per app on the shared cluster |
+| `app_name` | ✓ | — | App Platform app name; base for the defaults below |
 | `app_secret`, `app_encryption_key` | ✓ | — | Inject via `TF_VAR_*` |
+| `image_repository` | | `app_name` | Repo within the registry |
+| `db_name`, `db_user` | | from `app_name` | `db_name` = app_name with `-`→`_`; `db_user` = `db_name` |
 | `region` | | `tor` | Must match the DB cluster's region |
 | `registry_type` / `registry` | | `GHCR` / `ubermuda` | Also `DOCR`, `DOCKER_HUB` |
 | `registry_credentials` | | `""` | Required for GHCR/private Docker Hub |
 | `image_tag` | | `prod` | |
 | `db_cluster_name` | | `app-22613a04-…` | The shared cluster (name = the app-… string) |
+| `service_component_name` / `database_component_name` | | `web` / `db` | Set to existing names when adopting a deployed app |
 | `enable_predeploy_migrations` | | `false` | Turn on after first-deploy bootstrap |
 | `custom_domain` / `domain_zone` / `default_uri` | | `""` | Optional custom domain |
 | `extra_env` | | `{}` | Project-specific env passthrough |
