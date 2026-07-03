@@ -1,6 +1,6 @@
 # Example consumer root. Real projects reference the module by git ref:
 #
-#   source = "git::https://github.com/ubermuda/tf-do-symfony-app.git//?ref=v1.0.0"
+#   source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v1.0.0"
 #
 # Here it uses a relative path so the example can be validated in-repo.
 module "app" {

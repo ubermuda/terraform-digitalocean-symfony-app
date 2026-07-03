@@ -1,4 +1,4 @@
-# tf-do-symfony-app
+# terraform-digitalocean-symfony-app
 
 Terraform module that deploys a Symfony app (built from the `symfony-skeleton`)
 to **DigitalOcean App Platform**, running a **prebuilt** image and attaching a
@@ -18,7 +18,7 @@ provider "digitalocean" {
 
 # main.tf (root)
 module "app" {
-  source = "git::https://github.com/ubermuda/tf-do-symfony-app.git//?ref=v1.0.0"
+  source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v1.0.0"
 
   app_name         = "my-app"
   image_repository = "my-app"
