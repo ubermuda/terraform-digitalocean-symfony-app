@@ -1,0 +1,15 @@
+# Terraform working files and state (state/tfvars hold secrets)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Keep committed: .terraform.lock.hcl (provider version lock)
