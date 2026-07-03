@@ -162,6 +162,24 @@ resource "digitalocean_app" "app" {
       }
     }
 
+    # Route all traffic to the web service. Set explicitly (rather than relying
+    # on App Platform's implicit default) so that migrating an app which already
+    # has an ingress rule rewrites it to this component — otherwise the provider
+    # keeps the app's prior (computed) ingress, which may reference an old
+    # component name and fail spec validation.
+    ingress {
+      rule {
+        component {
+          name = "web"
+        }
+        match {
+          path {
+            prefix = "/"
+          }
+        }
+      }
+    }
+
     # ── Attach the per-app database on the shared cluster ────────────────────
     database {
       name         = "db"
