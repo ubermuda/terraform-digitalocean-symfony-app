@@ -9,8 +9,12 @@ tags consumers pin via `?ref=`.
 ### Added
 
 - Opt-in worker component (`enable_worker`, `worker_command`,
-  `worker_component_name`, `worker_instance_size_slug`) — same image as the
-  service, supervised by App Platform.
+  `worker_component_name`, `worker_instance_size_slug`, `worker_instance_count`)
+  — same image as the service, supervised by App Platform.
+
+### Changed
+
+- Minimum Terraform version raised from 1.5 to 1.9 (cross-variable validation on worker_command).
 
 ## [1.4.0] - 2026-07-03
 
