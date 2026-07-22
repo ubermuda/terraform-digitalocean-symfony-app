@@ -4,6 +4,18 @@ All notable changes to this module are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are the git
 tags consumers pin via `?ref=`.
 
+## [Unreleased]
+
+### Added
+
+- Opt-in worker component (`enable_worker`, `worker_command`,
+  `worker_component_name`, `worker_instance_size_slug`, `worker_instance_count`)
+  — same image as the service, supervised by App Platform.
+
+### Changed
+
+- Minimum Terraform version raised from 1.5 to 1.9 (cross-variable validation on worker_command).
+
 ## [1.4.0] - 2026-07-03
 
 ### Added

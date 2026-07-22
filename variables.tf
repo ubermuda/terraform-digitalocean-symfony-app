@@ -65,7 +65,7 @@ variable "deploy_on_push" {
 
 variable "instance_size_slug" {
   type        = string
-  description = "App Platform instance size slug for the web service (and the migration job when enabled)."
+  description = "App Platform instance size slug for the web service (and, when enabled, the migration job and the worker unless worker_instance_size_slug overrides it)."
   default     = "apps-s-1vcpu-0.5gb"
 }
 
@@ -151,6 +151,45 @@ variable "migration_command" {
   type        = string
   description = "Command the PRE_DEPLOY job runs (when enabled)."
   default     = "bash docker/prod/release.sh"
+}
+
+# ---------------------------------------------------------------------------
+# Background worker (optional)
+# ---------------------------------------------------------------------------
+
+variable "enable_worker" {
+  type        = bool
+  description = "Run a background worker component (same image as the service) with worker_command."
+  default     = false
+}
+
+variable "worker_command" {
+  type        = string
+  description = "Run command for the worker component (required when enable_worker is true)."
+  default     = ""
+
+  validation {
+    condition     = !var.enable_worker || var.worker_command != ""
+    error_message = "worker_command is required when enable_worker is true."
+  }
+}
+
+variable "worker_component_name" {
+  type        = string
+  description = "Name of the worker component."
+  default     = "worker"
+}
+
+variable "worker_instance_size_slug" {
+  type        = string
+  description = "Instance size for the worker component. Empty means: use the service's instance_size_slug."
+  default     = ""
+}
+
+variable "worker_instance_count" {
+  type        = number
+  description = "Number of worker instances."
+  default     = 1
 }
 
 # ---------------------------------------------------------------------------

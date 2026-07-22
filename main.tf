@@ -55,8 +55,9 @@ locals {
 
   registry_credentials = var.registry_credentials != "" ? var.registry_credentials : null
 
-  # App-level env: inherited by the web service and the migration job. Plain
-  # values only — DATABASE_URL (a ${db.*} binding) lives on the components.
+  # App-level env: inherited by every component (web service, migration job,
+  # worker). Plain values only — DATABASE_URL (a ${db.*} binding) lives on
+  # the components.
   base_env = concat(
     [
       { key = "APP_ENV", value = "prod", type = "GENERAL", scope = "RUN_TIME" },
@@ -151,6 +152,32 @@ resource "digitalocean_app" "app" {
         kind               = "PRE_DEPLOY"
         instance_size_slug = var.instance_size_slug
         run_command        = var.migration_command
+
+        image {
+          registry_type        = var.registry_type
+          registry             = var.registry_type == "DOCR" ? null : var.registry
+          repository           = local.image_repository
+          tag                  = var.image_tag
+          registry_credentials = local.registry_credentials
+        }
+
+        env {
+          key   = "DATABASE_URL"
+          value = local.database_url
+          type  = "GENERAL"
+          scope = "RUN_TIME"
+        }
+      }
+    }
+
+    # ── Background worker (opt-in): same image, supervised by App Platform ──
+    dynamic "worker" {
+      for_each = var.enable_worker ? [1] : []
+      content {
+        name               = var.worker_component_name
+        instance_size_slug = var.worker_instance_size_slug != "" ? var.worker_instance_size_slug : var.instance_size_slug
+        instance_count     = var.worker_instance_count
+        run_command        = var.worker_command
 
         image {
           registry_type        = var.registry_type
