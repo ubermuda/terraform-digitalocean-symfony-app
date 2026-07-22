@@ -47,8 +47,9 @@ validatable root is in [`examples/complete/`](examples/complete).
 - A dedicated **database + user** on the shared cluster (guarded with
   `prevent_destroy`).
 - A `digitalocean_app` with a **web** service (nginx + php-fpm on :80), the
-  database attached as component `db`, an optional custom domain, and an
-  **opt-in** `PRE_DEPLOY` migration job.
+  database attached as component `db`, an optional custom domain, an
+  **opt-in** `PRE_DEPLOY` migration job, and an **opt-in background worker**
+  component (same image, running `worker_command`).
 
 The image is **not** built by App Platform — build and push it yourself (e.g. a
 `just build-prod` recipe) and point `registry_*` / `image_*` at it.
@@ -76,6 +77,11 @@ The image is **not** built by App Platform — build and push it yourself (e.g. 
 | `database_server_version` | | `18` | PG major version for `DATABASE_URL`'s `serverVersion`; match the cluster (default cluster is PG 18) |
 | `service_component_name` / `database_component_name` | | `web` / `db` | Set to existing names when adopting a deployed app |
 | `enable_predeploy_migrations` | | `false` | Turn on after first-deploy bootstrap |
+| `enable_worker` | | `false` | Run a background worker component |
+| `worker_command` | | `""` | Required when `enable_worker` is `true` |
+| `worker_component_name` | | `worker` | Name of the worker component |
+| `worker_instance_size_slug` | | `""` (= `instance_size_slug`) | Instance size for the worker |
+| `worker_instance_count` | | `1` | Number of worker instances |
 | `custom_domain` / `domain_zone` / `default_uri` | | `""` | Optional custom domain |
 | `extra_env` | | `{}` | Project-specific env passthrough |
 

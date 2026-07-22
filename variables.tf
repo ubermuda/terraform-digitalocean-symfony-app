@@ -167,6 +167,11 @@ variable "worker_command" {
   type        = string
   description = "Run command for the worker component (required when enable_worker is true)."
   default     = ""
+
+  validation {
+    condition     = !var.enable_worker || var.worker_command != ""
+    error_message = "worker_command is required when enable_worker is true."
+  }
 }
 
 variable "worker_component_name" {
@@ -179,6 +184,12 @@ variable "worker_instance_size_slug" {
   type        = string
   description = "Instance size for the worker component. Empty means: use the service's instance_size_slug."
   default     = ""
+}
+
+variable "worker_instance_count" {
+  type        = number
+  description = "Number of worker instances."
+  default     = 1
 }
 
 # ---------------------------------------------------------------------------

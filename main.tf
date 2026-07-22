@@ -56,8 +56,8 @@ locals {
   registry_credentials = var.registry_credentials != "" ? var.registry_credentials : null
 
   # App-level env: inherited by every component (web service, migration job,
-  # worker). Plain
-  # values only — DATABASE_URL (a ${db.*} binding) lives on the components.
+  # worker). Plain values only — DATABASE_URL (a ${db.*} binding) lives on
+  # the components.
   base_env = concat(
     [
       { key = "APP_ENV", value = "prod", type = "GENERAL", scope = "RUN_TIME" },
@@ -176,7 +176,7 @@ resource "digitalocean_app" "app" {
       content {
         name               = var.worker_component_name
         instance_size_slug = var.worker_instance_size_slug != "" ? var.worker_instance_size_slug : var.instance_size_slug
-        instance_count     = 1
+        instance_count     = var.worker_instance_count
         run_command        = var.worker_command
 
         image {

@@ -25,6 +25,10 @@ module "app" {
   # First deploy: keep false, do the manual DB bootstrap, then flip true.
   # enable_predeploy_migrations = true
 
+  # Background worker (same image, supervised by App Platform):
+  # enable_worker  = true
+  # worker_command = "php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M"
+
   # Project-specific env (this is the escape hatch qualendar needs):
   # extra_env = {
   #   APP_MULTITENANT         = { value = "1" }
