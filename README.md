@@ -121,6 +121,33 @@ php -r '$p=new PDO(sprintf("pgsql:host=%s;port=%s;dbname=%s;sslmode=require",get
 Then run migrations once (`docker run --rm --env-file … <image> docker/prod/release.sh`)
 and set `enable_predeploy_migrations = true` for automated migrations thereafter.
 
+## Mercure hub
+
+Set `enable_mercure = true` and supply `mercure_jwt_secret` to run a hub as a
+second service in the same app:
+
+```hcl
+enable_mercure     = true
+mercure_jwt_secret = var.mercure_jwt_secret   # same value the app signs with
+```
+
+The module routes `mercure_path` (default `/.well-known/mercure`) on the app's
+own domain to the hub, listing that rule **before** the web service's `/`
+catch-all, and injects `MERCURE_URL`, `MERCURE_PUBLIC_URL` and
+`MERCURE_JWT_SECRET` into the app environment — a consuming app does not set
+them itself.
+
+Two addresses are needed because they have different audiences: the application
+publishes over the app's private network (`http://<component>/…`), while
+subscribers are typically outside it — a browser, or a CLI on a developer's
+machine — and need the public route.
+
+The hub is **in-memory**: delivery is best effort and a restart drops
+undelivered updates. Publishers that need durability should keep their own
+outbox and replay. `mercure_image_tag` defaults to `latest`; pin it for
+production.
+
+
 ## Notes
 
 - **State is sensitive.** SECRET env plaintext lives in state — use an encrypted

@@ -262,3 +262,62 @@ variable "mailer_dsn" {
   description = "Production MAILER_DSN. Defaults to a no-op transport."
   default     = "null://null"
 }
+
+# ── Mercure hub (opt-in) ──────────────────────────────────────────────────
+# Runs a hub as a second service in the same app and routes a path on the app's
+# own domain to it, so publishers (the app, internally) and subscribers (a
+# developer's machine, publicly) both reach it without a separate deployment.
+
+variable "enable_mercure" {
+  type        = bool
+  default     = false
+  description = "Run a Mercure hub component and route mercure_path on the app's domain to it. Also injects MERCURE_URL and MERCURE_PUBLIC_URL into the app env, so consuming apps need not set them."
+}
+
+variable "mercure_image" {
+  type        = string
+  default     = "dunglas/mercure"
+  description = "Docker Hub image for the hub. Pin a tag in production rather than tracking latest."
+}
+
+variable "mercure_image_tag" {
+  type        = string
+  default     = "latest"
+  description = "Tag for mercure_image."
+}
+
+variable "mercure_component_name" {
+  type        = string
+  default     = "mercure"
+  description = "Name of the hub component in the app spec. Also its internal hostname."
+}
+
+variable "mercure_path" {
+  type        = string
+  default     = "/.well-known/mercure"
+  description = "Path on the app's domain routed to the hub. Must be more specific than the web service's catch-all, which it is routed ahead of."
+}
+
+variable "mercure_jwt_secret" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Shared key signing publisher and subscriber JWTs. Required when enable_mercure is true; the app signs with the same value via MERCURE_JWT_SECRET."
+
+  validation {
+    condition     = !var.enable_mercure || var.mercure_jwt_secret != ""
+    error_message = "mercure_jwt_secret is required when enable_mercure is true."
+  }
+}
+
+variable "mercure_instance_size_slug" {
+  type        = string
+  default     = ""
+  description = "Instance size for the hub. Empty means: use the service's instance_size_slug."
+}
+
+variable "mercure_extra_directives" {
+  type        = string
+  default     = ""
+  description = "Extra Caddy directives for the hub (MERCURE_EXTRA_DIRECTIVES), e.g. cors_origins. Empty leaves the image defaults."
+}
