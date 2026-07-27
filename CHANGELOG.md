@@ -6,6 +6,8 @@ tags consumers pin via `?ref=`.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-27
+
 ### Added
 
 - Opt-in Mercure hub component (`enable_mercure`, `mercure_jwt_secret`,
@@ -15,6 +17,10 @@ tags consumers pin via `?ref=`.
   app's own domain to it, so publishers reach it privately and subscribers
   publicly without a separate deployment. `MERCURE_URL`, `MERCURE_PUBLIC_URL`
   and `MERCURE_JWT_SECRET` are injected into the app env automatically.
+
+## [1.5.0] - 2026-07-22
+
+### Added
 
 - Opt-in worker component (`enable_worker`, `worker_command`,
   `worker_component_name`, `worker_instance_size_slug`, `worker_instance_count`)
