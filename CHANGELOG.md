@@ -8,6 +8,14 @@ tags consumers pin via `?ref=`.
 
 ### Added
 
+- Opt-in Mercure hub component (`enable_mercure`, `mercure_jwt_secret`,
+  `mercure_image`, `mercure_image_tag`, `mercure_component_name`,
+  `mercure_path`, `mercure_instance_size_slug`, `mercure_extra_directives`).
+  Runs `dunglas/mercure` as a second service and routes `mercure_path` on the
+  app's own domain to it, so publishers reach it privately and subscribers
+  publicly without a separate deployment. `MERCURE_URL`, `MERCURE_PUBLIC_URL`
+  and `MERCURE_JWT_SECRET` are injected into the app env automatically.
+
 - Opt-in worker component (`enable_worker`, `worker_command`,
   `worker_component_name`, `worker_instance_size_slug`, `worker_instance_count`)
   — same image as the service, supervised by App Platform.

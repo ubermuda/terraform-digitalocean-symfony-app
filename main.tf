@@ -67,7 +67,15 @@ locals {
       { key = "MESSENGER_TRANSPORT_DSN", value = var.messenger_transport_dsn, type = "GENERAL", scope = "RUN_TIME" },
       { key = "APP_SHARE_DIR", value = var.app_share_dir, type = "GENERAL", scope = "RUN_TIME" },
     ],
-    local.default_uri != "" ? [{ key = "DEFAULT_URI", value = local.default_uri, type = "GENERAL", scope = "RUN_TIME" }] : []
+    local.default_uri != "" ? [{ key = "DEFAULT_URI", value = local.default_uri, type = "GENERAL", scope = "RUN_TIME" }] : [],
+    var.enable_mercure ? [
+      # Publishers reach the hub over the app's private network; subscribers
+      # (a developer's machine running the bridge) need the public route, so
+      # both are derived here rather than left to the consuming app.
+      { key = "MERCURE_URL", value = "http://${var.mercure_component_name}${var.mercure_path}", type = "GENERAL", scope = "RUN_TIME" },
+      { key = "MERCURE_PUBLIC_URL", value = "${local.default_uri}${var.mercure_path}", type = "GENERAL", scope = "RUN_TIME" },
+      { key = "MERCURE_JWT_SECRET", value = var.mercure_jwt_secret, type = "SECRET", scope = "RUN_TIME" },
+    ] : []
   )
 
   extra_env_list = [
@@ -196,12 +204,79 @@ resource "digitalocean_app" "app" {
       }
     }
 
+    # ── Mercure hub (opt-in): a public image, not the app's ──────────────
+    dynamic "service" {
+      for_each = var.enable_mercure ? [1] : []
+      content {
+        name               = var.mercure_component_name
+        instance_size_slug = var.mercure_instance_size_slug != "" ? var.mercure_instance_size_slug : var.instance_size_slug
+        instance_count     = 1
+        http_port          = 80
+
+        image {
+          registry_type = "DOCKER_HUB"
+          registry      = split("/", var.mercure_image)[0]
+          repository    = split("/", var.mercure_image)[1]
+          tag           = var.mercure_image_tag
+        }
+
+        # The hub is stateless and in-memory: delivery is best effort, and a
+        # restart drops undelivered updates. Publishers that need durability
+        # keep their own outbox.
+        env {
+          key   = "SERVER_NAME"
+          value = ":80"
+          type  = "GENERAL"
+          scope = "RUN_TIME"
+        }
+        env {
+          key   = "MERCURE_PUBLISHER_JWT_KEY"
+          value = var.mercure_jwt_secret
+          type  = "SECRET"
+          scope = "RUN_TIME"
+        }
+        env {
+          key   = "MERCURE_SUBSCRIBER_JWT_KEY"
+          value = var.mercure_jwt_secret
+          type  = "SECRET"
+          scope = "RUN_TIME"
+        }
+
+        dynamic "env" {
+          for_each = var.mercure_extra_directives != "" ? [1] : []
+          content {
+            key   = "MERCURE_EXTRA_DIRECTIVES"
+            value = var.mercure_extra_directives
+            type  = "GENERAL"
+            scope = "RUN_TIME"
+          }
+        }
+      }
+    }
+
     # Route all traffic to the web service. Set explicitly (rather than relying
     # on App Platform's implicit default) so that migrating an app which already
     # has an ingress rule rewrites it to this component — otherwise the provider
     # keeps the app's prior (computed) ingress, which may reference an old
     # component name and fail spec validation.
     ingress {
+      # Listed first: App Platform evaluates rules in order, so the hub's
+      # specific path must precede the web service's "/" catch-all or every
+      # request reaches the app instead.
+      dynamic "rule" {
+        for_each = var.enable_mercure ? [1] : []
+        content {
+          component {
+            name = var.mercure_component_name
+          }
+          match {
+            path {
+              prefix = var.mercure_path
+            }
+          }
+        }
+      }
+
       rule {
         component {
           name = var.service_component_name
