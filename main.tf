@@ -1,25 +1,148 @@
-# Existing shared managed Postgres cluster (created outside Terraform, shared
-# with sibling apps). For App-Platform-provisioned clusters the `name` is the
-# app-<uuid> string. This is a DATA SOURCE — Terraform only reads it and never
-# creates or destroys the cluster.
-data "digitalocean_database_cluster" "shared" {
-  name = var.db_cluster_name
+# ── Where the database lives: bring your own cluster, or create one ─────────
+#
+# Two mutually exclusive modes, selected by create_db_cluster:
+#
+#   false (default) — BRING YOUR OWN. An existing cluster named by
+#                     db_cluster_name is read as a DATA SOURCE; Terraform never
+#                     creates or destroys it. This is what every consumer did
+#                     before the dedicated mode existed.
+#   true            — DEDICATED. Terraform creates a Postgres cluster for this
+#                     app alone and uses it. Costs real money; see variables.
+#
+# variables.tf validates that the two are not combined.
+locals {
+  # The cluster this module attached to before db_cluster_name had a default of
+  # "". Kept as a literal so a consumer who never set db_cluster_name resolves
+  # to exactly the same name as before and sees no plan diff.
+  default_shared_db_cluster_name = "app-22613a04-caee-4039-ad37-76858ef7c162"
+
+  byo_db_cluster_name = var.db_cluster_name != "" ? var.db_cluster_name : local.default_shared_db_cluster_name
+
+  # A created cluster is named off app_name, like image_repository and db_name.
+  # There is no override variable: naming a cluster you did not create is
+  # precisely what db_cluster_name (bring-your-own mode) is for.
+  dedicated_db_cluster_name = "${var.app_name}-db"
+
+  # Empty means "inherit database_server_version", so DATABASE_URL's
+  # serverVersion cannot over-state the engine version by drifting from it.
+  # db_cluster_region deliberately does NOT inherit var.region: the two are
+  # different slug namespaces (see the variable).
+  dedicated_db_cluster_version = var.db_cluster_version != "" ? var.db_cluster_version : var.database_server_version
+
+  # Whichever mode is active, resolved once. `one()` of a splat yields null for
+  # the mode that is switched off (count = 0); a conditional would fail on the
+  # count = 0 side because Terraform evaluates BOTH branches of `? :`.
+  db_cluster_id = coalesce(
+    one(digitalocean_database_cluster.dedicated[*].id),
+    one(data.digitalocean_database_cluster.shared[*].id),
+  )
+  db_cluster_name = coalesce(
+    one(digitalocean_database_cluster.dedicated[*].name),
+    one(data.digitalocean_database_cluster.shared[*].name),
+  )
+  db_cluster_host = coalesce(
+    one(digitalocean_database_cluster.dedicated[*].host),
+    one(data.digitalocean_database_cluster.shared[*].host),
+  )
 }
 
-# Dedicated database + user for this app on the shared cluster.
+# Bring-your-own: an existing managed Postgres cluster (created outside
+# Terraform, typically shared with sibling apps). For App-Platform-provisioned
+# clusters the `name` is the app-<uuid> string. This is a DATA SOURCE —
+# Terraform only reads it and never creates or destroys the cluster.
+data "digitalocean_database_cluster" "shared" {
+  count = var.create_db_cluster ? 0 : 1
+
+  name = local.byo_db_cluster_name
+}
+
+# Dedicated: a Postgres cluster for this app alone, owned by this state.
+#
+# prevent_destroy guards the entire application database, not just one app's
+# schema — this is the resource whose accidental removal loses everything. It
+# also means flipping create_db_cluster back to false ERRORS rather than
+# silently destroying the cluster: `terraform state rm` first if that is really
+# what you want. prevent_destroy must be a literal — it cannot be a variable.
+resource "digitalocean_database_cluster" "dedicated" {
+  count = var.create_db_cluster ? 1 : 0
+
+  name       = local.dedicated_db_cluster_name
+  engine     = "pg"
+  version    = local.dedicated_db_cluster_version
+  size       = var.db_cluster_size
+  node_count = var.db_cluster_node_count
+  region     = var.db_cluster_region
+  tags       = var.db_cluster_tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# App Platform and managed databases name the same physical location
+# differently ("tor" vs "tor1"), so nothing stops a consumer from setting one
+# and forgetting the other and quietly ending up cross-region: it works, but
+# the app then reaches its database over the public internet instead of the
+# private network. A `check` block warns without blocking, because putting them
+# apart on purpose is legitimate.
+#
+# The message names no example slug on purpose: the datacenter number is not
+# derivable from the metro (Amsterdam is ams3, San Francisco sfo3), so an
+# "e.g. <region>1" hint would send two metros in nine to a slug that does not
+# exist.
+check "db_cluster_colocated_with_app" {
+  assert {
+    condition     = !var.create_db_cluster || substr(var.db_cluster_region, 0, 3) == var.region
+    error_message = "db_cluster_region (${var.db_cluster_region}) is not in the same metro as region (${var.region}), so the app will not reach its database over the private network. Set db_cluster_region to a datacenter slug beginning with \"${var.region}\" unless you mean to split them."
+  }
+}
+
+# Trusted sources for a cluster this module owns. `digitalocean_database_firewall`
+# is AUTHORITATIVE — it replaces the cluster's whole trusted-source list — which
+# is why it must never be used against a SHARED cluster (it would cut off the
+# sibling apps) and is created only in dedicated mode. Here that authority is
+# what you want: the cluster reaches a known, declared state instead of whatever
+# `doctl databases firewalls append` last did.
+#
+# ORDERING: this is created AFTER digitalocean_app, because the app's own ID is
+# the rule. The app's first deployment therefore comes up before this list
+# exists — the same position bring-your-own mode is in, where trusted sources
+# are appended by hand once `terraform output app_id` has a value. That is why
+# enable_predeploy_migrations must stay off for the first deploy in both modes.
+#
+# The consequence of an authoritative list is that a human needs
+# db_cluster_trusted_ips to get in — see README "Database bootstrap".
+resource "digitalocean_database_firewall" "dedicated" {
+  count = var.create_db_cluster ? 1 : 0
+
+  cluster_id = digitalocean_database_cluster.dedicated[0].id
+
+  rule {
+    type  = "app"
+    value = digitalocean_app.app.id
+  }
+
+  dynamic "rule" {
+    for_each = toset(var.db_cluster_trusted_ips)
+    content {
+      type  = "ip_addr"
+      value = rule.value
+    }
+  }
+}
+
+# Dedicated database + user for this app on whichever cluster is in play.
 #
 # NOTE: the DO provider creates the db + user but CANNOT manage Postgres
-# privileges/ownership, and trusted sources must be appended by hand. Do NOT add
-# a `digitalocean_database_firewall` resource: it is AUTHORITATIVE and would
-# replace the cluster's entire trusted-source list, cutting off the sibling apps.
-# See README "Manual database bootstrap".
+# privileges/ownership, so the schema GRANT stays a manual step in both modes.
+# See README "Database bootstrap".
 #
 # prevent_destroy guards this app's data. `terraform destroy` (or any plan that
 # would delete these) errors instead of dropping the database. To tear the data
 # down intentionally, `terraform state rm` the resource first (or drop it by
 # hand). prevent_destroy must be a literal — it cannot be a variable.
 resource "digitalocean_database_db" "app" {
-  cluster_id = data.digitalocean_database_cluster.shared.id
+  cluster_id = local.db_cluster_id
   name       = local.db_name
 
   lifecycle {
@@ -28,7 +151,7 @@ resource "digitalocean_database_db" "app" {
 }
 
 resource "digitalocean_database_user" "app" {
-  cluster_id = data.digitalocean_database_cluster.shared.id
+  cluster_id = local.db_cluster_id
   name       = local.db_user
 
   lifecycle {
@@ -289,12 +412,14 @@ resource "digitalocean_app" "app" {
       }
     }
 
-    # ── Attach the per-app database on the shared cluster ────────────────────
+    # ── Attach the per-app database on the cluster in play ───────────────────
+    # Same shape either way: App Platform attaches an existing cluster by name,
+    # and by the time this evaluates the dedicated cluster (if any) exists.
     database {
       name         = var.database_component_name
       engine       = "PG"
       production   = true
-      cluster_name = data.digitalocean_database_cluster.shared.name
+      cluster_name = local.db_cluster_name
       db_name      = digitalocean_database_db.app.name
       db_user      = digitalocean_database_user.app.name
     }
