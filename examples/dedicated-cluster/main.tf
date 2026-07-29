@@ -4,7 +4,7 @@
 #
 # Real projects reference the module by git ref:
 #
-#   source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v1.7.0"
+#   source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v2.0.0"
 #
 # Here it uses a relative path so the example can be validated in-repo.
 module "app" {

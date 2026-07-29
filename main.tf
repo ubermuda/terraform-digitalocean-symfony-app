@@ -9,15 +9,10 @@
 #   true            — DEDICATED. Terraform creates a Postgres cluster for this
 #                     app alone and uses it. Costs real money; see variables.
 #
-# variables.tf validates that the two are not combined.
+# variables.tf validates that exactly one of the two is chosen: neither
+# combined, nor both left out. There is no fallback cluster — an empty
+# db_cluster_name means "not set", never "use some default one".
 locals {
-  # The cluster this module attached to before db_cluster_name had a default of
-  # "". Kept as a literal so a consumer who never set db_cluster_name resolves
-  # to exactly the same name as before and sees no plan diff.
-  default_shared_db_cluster_name = "app-22613a04-caee-4039-ad37-76858ef7c162"
-
-  byo_db_cluster_name = var.db_cluster_name != "" ? var.db_cluster_name : local.default_shared_db_cluster_name
-
   # A created cluster is named off app_name, like image_repository and db_name.
   # There is no override variable: naming a cluster you did not create is
   # precisely what db_cluster_name (bring-your-own mode) is for.
@@ -53,7 +48,7 @@ locals {
 data "digitalocean_database_cluster" "shared" {
   count = var.create_db_cluster ? 0 : 1
 
-  name = local.byo_db_cluster_name
+  name = var.db_cluster_name
 }
 
 # Dedicated: a Postgres cluster for this app alone, owned by this state.

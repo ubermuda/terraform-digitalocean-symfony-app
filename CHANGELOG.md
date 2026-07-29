@@ -4,6 +4,51 @@ All notable changes to this module are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are the git
 tags consumers pin via `?ref=`.
 
+## [2.0.0] - 2026-07-29
+
+### Removed
+
+- **BREAKING: the hardcoded fallback database cluster.** An empty
+  `db_cluster_name` no longer resolves to
+  `app-22613a04-caee-4039-ad37-76858ef7c162` — a cluster belonging to the
+  **make-plans** project that every consumer omitting the variable was silently
+  attached to. `local.default_shared_db_cluster_name` and the
+  `byo_db_cluster_name` fallback expression are gone; the bring-your-own data
+  source now reads `var.db_cluster_name` directly.
+
+### Changed
+
+- **BREAKING: `db_cluster_name` empty now means "not set", not "use the default
+  one".** It has no default cluster to fall back on, so leaving it empty with
+  `create_db_cluster = false` is a **plan-time error** naming both ways out. The
+  module will not attach to a cluster nobody chose. The two unaffected paths are
+  unchanged: empty with `create_db_cluster = true` still creates the dedicated
+  `<app_name>-db` cluster, and setting both is still rejected as ambiguous by
+  the guard added in 1.7.0.
+- `examples/complete` now sets a placeholder `db_cluster_name`, since a
+  bring-your-own root without one no longer validates.
+
+### Upgrading from 1.x
+
+**If you never set `db_cluster_name`, you were using make-plans' cluster.** To
+keep exactly the behaviour you have today, name it explicitly:
+
+```hcl
+db_cluster_name = "app-22613a04-caee-4039-ad37-76858ef7c162"
+```
+
+Adding that line is a no-op — same cluster, same data source, no plan diff. If
+you would rather stop sharing it, point `db_cluster_name` at a cluster of your
+own, or set `create_db_cluster = true` for a dedicated one (a new, empty
+cluster — moving the data is your job).
+
+**If you already set `db_cluster_name`, or you are on
+`create_db_cluster = true`, nothing changes.** Bump the pin.
+
+The failure mode is loud, not silent: bumping with neither variable set makes
+`terraform plan` fail before it touches anything. Nothing is created, nothing is
+destroyed, and no app is quietly repointed at a different database.
+
 ## [1.7.0] - 2026-07-29
 
 ### Added

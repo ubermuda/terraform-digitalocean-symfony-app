@@ -9,7 +9,7 @@ variable "app_name" {
 
 variable "region" {
   type        = string
-  description = "App Platform region slug. MUST match the database cluster's region so traffic stays on the private network: with create_db_cluster the cluster is created here (unless db_cluster_region overrides it); otherwise this must match the existing cluster you point db_cluster_name at (the default shared cluster lives in tor)."
+  description = "App Platform region slug. MUST match the database cluster's region so traffic stays on the private network: with create_db_cluster the cluster is created here (unless db_cluster_region overrides it); otherwise this must match the region of the existing cluster you point db_cluster_name at."
   default     = "tor"
 }
 
@@ -92,8 +92,9 @@ variable "health_check_path" {
 #
 # Exactly one of the two. create_db_cluster = false (the default) reads an
 # existing cluster named by db_cluster_name; create_db_cluster = true makes the
-# module create a Postgres cluster for this app alone. Setting both is a
-# configuration error, caught by the validation on db_cluster_name below.
+# module create a Postgres cluster for this app alone. Setting both — or
+# neither — is a configuration error, caught by the validations on
+# db_cluster_name below. The module has no fallback cluster to attach to.
 # ---------------------------------------------------------------------------
 
 variable "create_db_cluster" {
@@ -104,12 +105,17 @@ variable "create_db_cluster" {
 
 variable "db_cluster_name" {
   type        = string
-  description = "Bring-your-own mode only: name of the EXISTING Postgres cluster to attach to. For App-Platform-provisioned clusters the name IS the app-<uuid> string; pass it directly (no lookup). Empty keeps the historical default shared cluster (app-22613a04-…). Must be left empty when create_db_cluster is true — the created cluster is named <app_name>-db."
+  description = "Bring-your-own mode only: name of the EXISTING Postgres cluster to attach to. For App-Platform-provisioned clusters the name IS the app-<uuid> string; pass it directly (no lookup). REQUIRED unless create_db_cluster is true — there is no default cluster, and empty means \"not set\". Must be left empty when create_db_cluster is true — the created cluster is named <app_name>-db."
   default     = ""
 
   validation {
     condition     = !(var.create_db_cluster && var.db_cluster_name != "")
     error_message = "db_cluster_name names an EXISTING cluster and cannot be combined with create_db_cluster = true. Either remove db_cluster_name to have the module create a dedicated cluster named \"<app_name>-db\", or drop create_db_cluster to attach to the named cluster."
+  }
+
+  validation {
+    condition     = var.create_db_cluster || var.db_cluster_name != ""
+    error_message = "No database cluster was chosen, and this module has no default one to fall back on. Either set db_cluster_name to an existing cluster to attach to (`doctl databases list` prints the names; for App-Platform-provisioned clusters it is the app-<uuid> string), or set create_db_cluster = true to have the module create a dedicated cluster named \"<app_name>-db\". Upgrading from 1.x without ever setting db_cluster_name? See \"Upgrading to 2.0.0\" in the README — you were attached to a shared cluster whose name you now have to pass explicitly."
   }
 }
 
@@ -173,7 +179,7 @@ variable "db_user" {
 variable "database_server_version" {
   type        = string
   default     = "18"
-  description = "PostgreSQL major version advertised to Doctrine via the DATABASE_URL serverVersion parameter. Must match the managed cluster's engine version — the default shared cluster runs PG 18, and a cluster created by this module uses this value unless db_cluster_version overrides it. Doctrine uses it to skip a version-detection round-trip and to select platform features; under-stating it is safe, over-stating it (a higher version than the server actually runs) can break. Set to your cluster's major version if it is not 18."
+  description = "PostgreSQL major version advertised to Doctrine via the DATABASE_URL serverVersion parameter. Must match the managed cluster's engine version — a cluster created by this module uses this value unless db_cluster_version overrides it, and in bring-your-own mode it must match whatever the cluster you attach to actually runs. Doctrine uses it to skip a version-detection round-trip and to select platform features; under-stating it is safe, over-stating it (a higher version than the server actually runs) can break. Set to your cluster's major version if it is not 18."
 }
 
 # ---------------------------------------------------------------------------

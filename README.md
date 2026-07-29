@@ -14,21 +14,55 @@ differences go through `extra_env` and resources in the consumer's own root.
 | | `create_db_cluster = false` (default) | `create_db_cluster = true` |
 |---|---|---|
 | Cluster | **Bring your own** — an existing one, read as a data source | **Dedicated** — created and owned by this state |
-| Named by | `db_cluster_name` (empty = the default shared cluster) | derived: `<app_name>-db` |
+| Named by | `db_cluster_name` — **required**, no default | derived: `<app_name>-db` |
 | Cost | shared with whatever else is on it | a whole cluster, billed hourly |
 | Trusted sources | manual (`doctl databases firewalls append`) | managed by the module |
 | Destroyed by `terraform destroy` | never — it is a data source | no — `prevent_destroy` |
 
-Setting `create_db_cluster = true` **and** `db_cluster_name` is rejected at plan
-time: one names a cluster to attach to, the other asks for a new one.
+You must choose one. Both guards are plan-time errors:
+
+- Setting `create_db_cluster = true` **and** `db_cluster_name` is rejected: one
+  names a cluster to attach to, the other asks for a new one.
+- Setting **neither** is rejected too. The module has no fallback cluster, so an
+  empty `db_cluster_name` means "not set" and never "use some default one".
 
 Both modes create the per-app database and user (`db_name` / `db_user`) and
 attach them to the app as the `db` component, so nothing downstream changes —
 `DATABASE_URL` and the `db_cluster_*` outputs are the same either way.
 
+## Upgrading to 2.0.0
+
+**2.0.0 removes the fallback cluster.** Through 1.x, an empty `db_cluster_name`
+did not mean "not set" — it silently resolved to a hardcoded cluster,
+`app-22613a04-caee-4039-ad37-76858ef7c162`, which belongs to the **make-plans**
+project. Every consumer that never set the variable was attached to that one
+cluster without ever choosing it. The literal is gone; the variable now has no
+default at all.
+
+**If you never set `db_cluster_name`, you were on that cluster.** To keep
+exactly the behaviour you have today, name it explicitly:
+
+```hcl
+db_cluster_name = "app-22613a04-caee-4039-ad37-76858ef7c162"
+```
+
+That is a no-op: same cluster, same data source, no plan diff. If you would
+rather stop sharing it, this is the moment — either point `db_cluster_name` at a
+cluster of your own, or set `create_db_cluster = true` and let the module build
+you a dedicated one (a new, empty cluster: migrating the data across is on you).
+
+**If you already set `db_cluster_name`, nothing changes.** Same for anyone on
+`create_db_cluster = true`. Bump the pin and carry on.
+
+**The failure is loud, not silent.** Bump to 2.0.0 with neither variable set and
+`terraform plan` stops before touching anything, with an error naming both ways
+out. Nothing is created, nothing is destroyed, and no app is quietly repointed
+at a different database — the worst case is a failed plan.
+
 ## Usage
 
-**Bring your own cluster** (the default — unchanged from earlier versions):
+**Bring your own cluster** — for an existing managed Postgres cluster you
+already have (`db_cluster_name` is required here):
 
 ```hcl
 # versions.tf (root) — provider + backend live in the ROOT, not the module.
@@ -38,16 +72,19 @@ provider "digitalocean" {
 
 # main.tf (root)
 module "app" {
-  source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v1.7.0"
+  source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v2.0.0"
 
   app_name = "my-app" # image repo + db name/user default off this
+
+  # REQUIRED here: the EXISTING cluster to attach to. `doctl databases list`
+  # prints the names; an App-Platform-provisioned cluster's name IS its app-<uuid>.
+  db_cluster_name = "app-00000000-1111-2222-3333-444444444444"
 
   registry_credentials = var.registry_credentials # GHCR "user:PAT"
   app_secret           = var.app_secret
   app_encryption_key   = var.app_encryption_key
 
   # Optional:
-  # db_cluster_name             = "app-…"  # the cluster to attach to; empty = the default shared one
   # image_repository            = "..."   # defaults to app_name
   # db_name / db_user           = "..."   # default off app_name (hyphens->underscores)
   # custom_domain               = "app.example.com"
@@ -62,7 +99,7 @@ at all, so the first `apply` is self-sufficient:
 
 ```hcl
 module "app" {
-  source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v1.7.0"
+  source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v2.0.0"
 
   app_name          = "my-app"
   create_db_cluster = true # creates "my-app-db" in `region`
@@ -80,8 +117,9 @@ module "app" {
 }
 ```
 
-For a new app, `app_name` + the three secrets is all you need — everything else
-has a default. Then run the one-time DB bootstrap below.
+For a new app in dedicated mode, `app_name` + `create_db_cluster` + the three
+secrets is all you need — everything else has a default. In bring-your-own mode
+add `db_cluster_name`. Then run the one-time DB bootstrap below.
 
 Always pin `?ref=` to a tag or commit — never track a moving branch. Complete,
 validatable roots are in [`examples/complete/`](examples/complete) (bring your
@@ -123,14 +161,14 @@ The image is **not** built by App Platform — build and push it yourself (e.g. 
 | `registry_credentials` | | `""` | Required for GHCR/private Docker Hub |
 | `image_tag` | | `prod` | |
 | `create_db_cluster` | | `false` | `true` creates a dedicated cluster instead of attaching to one |
-| `db_cluster_name` | | `""` (= `app-22613a04-…`) | Bring-your-own only: the existing cluster (name = the app-… string). Rejected with `create_db_cluster` |
+| `db_cluster_name` | ✓ unless `create_db_cluster` | — | Bring-your-own only: the existing cluster (name = the app-… string). No default; rejected with `create_db_cluster` |
 | `db_cluster_size` | | `db-s-1vcpu-1gb` | Dedicated only: cluster plan |
 | `db_cluster_node_count` | | `1` | Dedicated only: 1 = no standby |
 | `db_cluster_version` | | `""` (= `database_server_version`) | Dedicated only: PG major version |
 | `db_cluster_region` | | `tor1` | Dedicated only: **datacenter** slug (`tor1`), not the App Platform metro slug (`tor`) |
 | `db_cluster_tags` | | `[]` | Dedicated only: tags on the created cluster |
 | `db_cluster_trusted_ips` | | `[]` | Dedicated only: extra IPs/CIDRs allowed in, on top of the app |
-| `database_server_version` | | `18` | PG major version for `DATABASE_URL`'s `serverVersion`; match the cluster (default cluster is PG 18) |
+| `database_server_version` | | `18` | PG major version for `DATABASE_URL`'s `serverVersion`; must match whatever the cluster runs |
 | `service_component_name` / `database_component_name` | | `web` / `db` | Set to existing names when adopting a deployed app |
 | `enable_predeploy_migrations` | | `false` | Turn on after first-deploy bootstrap |
 | `enable_worker` | | `false` | Run a background worker component |
