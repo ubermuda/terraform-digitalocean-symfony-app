@@ -176,6 +176,12 @@ instead:
 db_cluster_trusted_ips = ["203.0.113.7"] # remove again after the grant below
 ```
 
+The firewall is applied **after** the app, since the app's ID is one of its
+rules — so on the very first apply the app deploys before the trusted-source
+list exists. That is the same ordering bring-your-own mode has always had (you
+append rules once `terraform output app_id` has a value), and it is why
+`enable_predeploy_migrations` must stay off for the first deploy in both modes.
+
 **2. Schema privileges** — manual in **both** modes; the DO **API exposes no**
 resource for Postgres grants, and creating the cluster does not make the app's
 user the owner of `public`. PG15+ blocks `CREATE` on `public` for a plain user, so

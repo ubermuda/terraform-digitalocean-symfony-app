@@ -99,10 +99,14 @@ check "db_cluster_colocated_with_app" {
 # what you want: the cluster reaches a known, declared state instead of whatever
 # `doctl databases firewalls append` last did.
 #
-# A managed cluster with no trusted sources accepts connections from anywhere
-# with the password, so declaring this tightens the default rather than
-# loosening it. The consequence is that a human needs db_cluster_trusted_ips to
-# get in — see README "Database bootstrap".
+# ORDERING: this is created AFTER digitalocean_app, because the app's own ID is
+# the rule. The app's first deployment therefore comes up before this list
+# exists — the same position bring-your-own mode is in, where trusted sources
+# are appended by hand once `terraform output app_id` has a value. That is why
+# enable_predeploy_migrations must stay off for the first deploy in both modes.
+#
+# The consequence of an authoritative list is that a human needs
+# db_cluster_trusted_ips to get in — see README "Database bootstrap".
 resource "digitalocean_database_firewall" "dedicated" {
   count = var.create_db_cluster ? 1 : 0
 
