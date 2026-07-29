@@ -85,10 +85,15 @@ resource "digitalocean_database_cluster" "dedicated" {
 # the app then reaches its database over the public internet instead of the
 # private network. A `check` block warns without blocking, because putting them
 # apart on purpose is legitimate.
+#
+# The message names no example slug on purpose: the datacenter number is not
+# derivable from the metro (Amsterdam is ams3, San Francisco sfo3), so an
+# "e.g. <region>1" hint would send two metros in nine to a slug that does not
+# exist.
 check "db_cluster_colocated_with_app" {
   assert {
     condition     = !var.create_db_cluster || substr(var.db_cluster_region, 0, 3) == var.region
-    error_message = "db_cluster_region (${var.db_cluster_region}) is not in the same metro as region (${var.region}), so the app will not reach its database over the private network. Set db_cluster_region to a datacenter in ${var.region} (e.g. ${var.region}1) unless you mean to split them."
+    error_message = "db_cluster_region (${var.db_cluster_region}) is not in the same metro as region (${var.region}), so the app will not reach its database over the private network. Set db_cluster_region to a datacenter slug beginning with \"${var.region}\" unless you mean to split them."
   }
 }
 
