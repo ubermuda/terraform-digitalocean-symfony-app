@@ -74,8 +74,11 @@ provider "digitalocean" {
 module "app" {
   source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v2.0.0"
 
-  app_name        = "my-app"  # image repo + db name/user default off this
-  db_cluster_name = "app-…"   # REQUIRED: the existing cluster to attach to
+  app_name = "my-app" # image repo + db name/user default off this
+
+  # REQUIRED here: the EXISTING cluster to attach to. `doctl databases list`
+  # prints the names; an App-Platform-provisioned cluster's name IS its app-<uuid>.
+  db_cluster_name = "app-00000000-1111-2222-3333-444444444444"
 
   registry_credentials = var.registry_credentials # GHCR "user:PAT"
   app_secret           = var.app_secret
