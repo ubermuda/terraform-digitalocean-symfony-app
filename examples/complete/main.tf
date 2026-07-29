@@ -1,6 +1,6 @@
 # Example consumer root. Real projects reference the module by git ref:
 #
-#   source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v1.0.0"
+#   source = "git::https://github.com/ubermuda/terraform-digitalocean-symfony-app.git//?ref=v2.0.0"
 #
 # Here it uses a relative path so the example can be validated in-repo.
 module "app" {
@@ -9,7 +9,13 @@ module "app" {
   app_name         = "symfony-skeleton"
   image_repository = "symfony-skeleton"
 
-  # Per-app database on the shared cluster — give each app unique names.
+  # The EXISTING cluster to attach to. Required in this mode — there is no
+  # default cluster, and leaving it empty is rejected at plan time. Replace the
+  # placeholder below with your own: `doctl databases list` prints the names,
+  # and for an App-Platform-provisioned cluster the name IS the app-<uuid>.
+  db_cluster_name = "app-00000000-1111-2222-3333-444444444444"
+
+  # Per-app database on that cluster — give each app unique names.
   db_name = "symfony_skeleton"
   db_user = "symfony_skeleton"
 
