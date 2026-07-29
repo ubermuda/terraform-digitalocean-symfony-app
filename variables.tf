@@ -133,8 +133,17 @@ variable "db_cluster_version" {
 
 variable "db_cluster_region" {
   type        = string
-  default     = ""
-  description = "Dedicated mode only: region slug for the created cluster. Empty means: use region, which is what colocates the cluster with the app on the private network. Override only if you deliberately want them apart."
+  default     = "tor1"
+  description = "Dedicated mode only: DATACENTER slug for the created cluster. NOT the same namespace as `region`: App Platform takes a metro slug (tor, nyc, ams) while managed databases take a numbered datacenter slug (tor1, nyc3, ams3), and passing the metro form here is rejected by the API at apply. Set it to a datacenter in the same metro as `region` so app and cluster share the private network — the default pair is tor / tor1."
+
+  validation {
+    # Catches the mistake this variable exists to make visible: passing the App
+    # Platform slug ("tor") where a datacenter slug ("tor1") is required. The
+    # provider does no client-side check, so without this it surfaces as an
+    # opaque API error on the first apply.
+    condition     = can(regex("^[a-z]{3}[0-9]+$", var.db_cluster_region))
+    error_message = "db_cluster_region must be a DigitalOcean datacenter slug such as tor1, nyc3 or ams3 — not an App Platform region slug like tor. Managed databases and App Platform use different region namespaces."
+  }
 }
 
 variable "db_cluster_tags" {

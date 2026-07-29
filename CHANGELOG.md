@@ -14,8 +14,10 @@ tags consumers pin via `?ref=`.
   needs a manual `doctl databases create` before the first apply. Sized by
   `db_cluster_size` (default `db-s-1vcpu-1gb`), `db_cluster_node_count`
   (default `1`), `db_cluster_version` (default: `database_server_version`),
-  `db_cluster_region` (default: `region`) and `db_cluster_tags`. The cluster is
-  guarded with `prevent_destroy`.
+  `db_cluster_region` (default `tor1` — a **datacenter** slug, a different
+  namespace from App Platform's `region`, validated as such) and
+  `db_cluster_tags`. The cluster is guarded with `prevent_destroy`, and a
+  `check` block warns when it is not colocated with the app.
 - In dedicated mode the module also manages the cluster's **trusted sources**
   (the app itself, plus `db_cluster_trusted_ips`), removing the manual
   `doctl databases firewalls append` step. This stays out of bring-your-own

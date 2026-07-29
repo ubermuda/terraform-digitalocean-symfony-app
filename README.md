@@ -75,7 +75,7 @@ module "app" {
   # db_cluster_size        = "db-s-1vcpu-1gb" # smallest managed PG plan
   # db_cluster_node_count  = 1                # no standby node
   # db_cluster_version     = ""               # "" = database_server_version (18)
-  # db_cluster_region      = ""               # "" = region
+  # db_cluster_region      = "tor1"           # datacenter slug — see below
   # db_cluster_trusted_ips = ["203.0.113.7"]  # your address, for the one-time GRANT
 }
 ```
@@ -127,7 +127,7 @@ The image is **not** built by App Platform — build and push it yourself (e.g. 
 | `db_cluster_size` | | `db-s-1vcpu-1gb` | Dedicated only: cluster plan |
 | `db_cluster_node_count` | | `1` | Dedicated only: 1 = no standby |
 | `db_cluster_version` | | `""` (= `database_server_version`) | Dedicated only: PG major version |
-| `db_cluster_region` | | `""` (= `region`) | Dedicated only: keeps app and DB colocated |
+| `db_cluster_region` | | `tor1` | Dedicated only: **datacenter** slug (`tor1`), not the App Platform metro slug (`tor`) |
 | `db_cluster_tags` | | `[]` | Dedicated only: tags on the created cluster |
 | `db_cluster_trusted_ips` | | `[]` | Dedicated only: extra IPs/CIDRs allowed in, on top of the app |
 | `database_server_version` | | `18` | PG major version for `DATABASE_URL`'s `serverVersion`; match the cluster (default cluster is PG 18) |
@@ -232,9 +232,15 @@ production.
   destroying a cluster holding the whole application database; that is on
   purpose. In bring-your-own mode the cluster is a data source and is never
   touched regardless.
-- **Region must match the DB.** Colocate app and cluster. In dedicated mode
-  that is automatic (`db_cluster_region` defaults to `region`); in
-  bring-your-own mode set `region` to the existing cluster's region.
+- **Region must match the DB — and the two use different slugs.** App Platform
+  takes a metro slug (`region = "tor"`); managed databases take a numbered
+  datacenter slug (`db_cluster_region = "tor1"`). They are the same place under
+  two names, so they cannot inherit from each other. The defaults are already a
+  matching pair; change one and you must change the other, or the app reaches
+  its database over the public internet instead of the private network. Passing
+  the metro slug to `db_cluster_region` is rejected at plan time, and a
+  mismatched-but-valid pair produces a warning. In bring-your-own mode, set
+  `region` to the metro of the existing cluster.
 - **A dedicated cluster costs money for as long as it exists**, independently of
   the app. `db_cluster_size` defaults to the smallest managed plan and
   `db_cluster_node_count` to 1 (no standby: a node failure is downtime, and

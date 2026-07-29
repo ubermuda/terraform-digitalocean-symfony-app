@@ -13,8 +13,8 @@ module "app" {
   app_name = "symfony-skeleton"
 
   # ── Dedicated cluster ────────────────────────────────────────────────────
-  # Creates a Postgres cluster named "<app_name>-db" in `region`, running
-  # `database_server_version` (18). It is billed for as long as it exists.
+  # Creates a Postgres cluster named "<app_name>-db" in `db_cluster_region`,
+  # running `database_server_version` (18). Billed for as long as it exists.
   #
   # Do NOT also set db_cluster_name — that names an EXISTING cluster and the
   # module rejects the combination at plan time.
@@ -24,7 +24,12 @@ module "app" {
   # db_cluster_size       = "db-s-1vcpu-1gb"  # smallest managed PG plan
   # db_cluster_node_count = 1                 # no standby; backups are the recovery path
   # db_cluster_version    = ""                # "" = database_server_version
-  # db_cluster_region     = ""                # "" = region (keeps app and DB colocated)
+  #
+  # Databases use DATACENTER slugs (tor1, nyc3), App Platform uses METRO slugs
+  # (tor, nyc). The defaults are a matching pair; change one and change both,
+  # or the app talks to its database over the public internet.
+  # region            = "tor"
+  # db_cluster_region = "tor1"
 
   # The trusted-source list is authoritative in this mode: the app is always
   # allowed, and anything appended by hand is removed on the next apply. Add

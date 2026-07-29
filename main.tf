@@ -23,10 +23,10 @@ locals {
   # precisely what db_cluster_name (bring-your-own mode) is for.
   dedicated_db_cluster_name = "${var.app_name}-db"
 
-  # Empty means "inherit" — the app and its database must be colocated, and
-  # DATABASE_URL's serverVersion must not over-state the engine version, so
-  # both default to the value already in play rather than a second literal.
-  dedicated_db_cluster_region  = var.db_cluster_region != "" ? var.db_cluster_region : var.region
+  # Empty means "inherit database_server_version", so DATABASE_URL's
+  # serverVersion cannot over-state the engine version by drifting from it.
+  # db_cluster_region deliberately does NOT inherit var.region: the two are
+  # different slug namespaces (see the variable).
   dedicated_db_cluster_version = var.db_cluster_version != "" ? var.db_cluster_version : var.database_server_version
 
   # Whichever mode is active, resolved once. `one()` of a splat yields null for
@@ -71,11 +71,24 @@ resource "digitalocean_database_cluster" "dedicated" {
   version    = local.dedicated_db_cluster_version
   size       = var.db_cluster_size
   node_count = var.db_cluster_node_count
-  region     = local.dedicated_db_cluster_region
+  region     = var.db_cluster_region
   tags       = var.db_cluster_tags
 
   lifecycle {
     prevent_destroy = true
+  }
+}
+
+# App Platform and managed databases name the same physical location
+# differently ("tor" vs "tor1"), so nothing stops a consumer from setting one
+# and forgetting the other and quietly ending up cross-region: it works, but
+# the app then reaches its database over the public internet instead of the
+# private network. A `check` block warns without blocking, because putting them
+# apart on purpose is legitimate.
+check "db_cluster_colocated_with_app" {
+  assert {
+    condition     = !var.create_db_cluster || substr(var.db_cluster_region, 0, 3) == var.region
+    error_message = "db_cluster_region (${var.db_cluster_region}) is not in the same metro as region (${var.region}), so the app will not reach its database over the private network. Set db_cluster_region to a datacenter in ${var.region} (e.g. ${var.region}1) unless you mean to split them."
   }
 }
 
