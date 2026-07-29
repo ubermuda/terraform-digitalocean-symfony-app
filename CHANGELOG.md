@@ -6,6 +6,35 @@ tags consumers pin via `?ref=`.
 
 ## [Unreleased]
 
+### Added
+
+- Optional **dedicated Postgres cluster**. `create_db_cluster = true` makes the
+  module create and own a cluster named `<app_name>-db` for this app instead of
+  attaching to an existing one, so a consumer starting from nothing no longer
+  needs a manual `doctl databases create` before the first apply. Sized by
+  `db_cluster_size` (default `db-s-1vcpu-1gb`), `db_cluster_node_count`
+  (default `1`), `db_cluster_version` (default: `database_server_version`),
+  `db_cluster_region` (default: `region`) and `db_cluster_tags`. The cluster is
+  guarded with `prevent_destroy`.
+- In dedicated mode the module also manages the cluster's **trusted sources**
+  (the app itself, plus `db_cluster_trusted_ips`), removing the manual
+  `doctl databases firewalls append` step. This stays out of bring-your-own
+  mode, where the resource is authoritative and would cut off sibling apps.
+- Outputs `db_cluster_name`, `db_cluster_host` and `db_cluster_created`;
+  `db_cluster_id` now resolves in both modes. A consuming root does not
+  special-case on the mode.
+
+### Changed
+
+- `db_cluster_name`'s default is now `""`, meaning "the historical default
+  shared cluster (`app-22613a04-…`)", which is resolved internally. **No
+  behaviour change and no plan diff** for existing consumers, whether they set
+  the variable or relied on the old literal default. The empty default is what
+  lets the module tell "not set" from "set", so combining it with
+  `create_db_cluster` can be rejected at plan time.
+- Examples' `required_version` raised from `>= 1.5` to `>= 1.9`, matching the
+  module floor they call.
+
 ## [1.6.0] - 2026-07-27
 
 ### Added
