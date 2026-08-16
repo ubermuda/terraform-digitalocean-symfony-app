@@ -4,6 +4,21 @@ All notable changes to this module are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are the git
 tags consumers pin via `?ref=`.
 
+## [2.1.0] - 2026-08-15
+
+### Fixed
+
+- **`digitalocean_database_user` no longer breaks every apply.** DigitalOcean
+  returns `settings = [{ acl = [], opensearch_acl = [] }]` for a Postgres user
+  even though those ACLs are a Kafka/OpenSearch concept. The provider's
+  `settings` block is optional and not computed, so that reply read as drift
+  against a module that declares no settings, and each plan proposed removing
+  it — an update the API then rejected with `request is missing the following
+  required fields: user_settings`. Since the error aborts the whole apply, a
+  deployment could not be changed at all once the user existed. The resource now
+  carries `ignore_changes = [settings]`, which is safe because the module never
+  configures them.
+
 ## [2.0.0] - 2026-07-29
 
 ### Removed
