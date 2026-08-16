@@ -151,6 +151,14 @@ resource "digitalocean_database_user" "app" {
 
   lifecycle {
     prevent_destroy = true
+
+    # `settings` holds Kafka/OpenSearch ACLs and means nothing to a Postgres
+    # user, but DigitalOcean returns it populated with empty lists anyway. The
+    # provider's block is optional and not computed, so that reply reads as
+    # drift, and the update it proposes is rejected by the API itself
+    # ("missing the following required fields: user_settings") — failing every
+    # apply, including ones unrelated to the database.
+    ignore_changes = [settings]
   }
 }
 
