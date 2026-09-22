@@ -394,6 +394,12 @@ resource "digitalocean_app" "app" {
         content {
           component {
             name = var.mercure_component_name
+            # App Platform strips the matched prefix by default, so the hub
+            # would receive "/" and serve its welcome page: a 200 with
+            # text/html, which an EventSource reads as a connection that
+            # opened and closed with no error. Mercure serves the hub at
+            # var.mercure_path itself, so the path has to arrive intact.
+            preserve_path_prefix = true
           }
           match {
             path {
