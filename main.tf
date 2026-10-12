@@ -230,6 +230,16 @@ resource "digitalocean_app" "app" {
       }
     }
 
+    dynamic "domain" {
+      for_each = var.extra_domains
+      content {
+        name     = domain.value.name
+        type     = domain.value.type
+        wildcard = domain.value.wildcard
+        zone     = domain.value.zone != "" ? domain.value.zone : null
+      }
+    }
+
     dynamic "env" {
       for_each = local.app_env
       content {
