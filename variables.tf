@@ -282,7 +282,7 @@ variable "extra_domains" {
     wildcard = optional(bool, false)
     zone     = optional(string, "")
   }))
-  description = "Extra domains to attach next to custom_domain, such as a wildcard domain that serves untrusted content. type is ALIAS, or PRIMARY for a domain with no custom_domain. A wildcard needs the root domain on the app first, and a certificate whose TXT records the operator renews. zone is a DO-managed DNS zone, empty to point DNS yourself."
+  description = "Extra domains to attach next to custom_domain, such as a wildcard domain that serves untrusted content. type is ALIAS, or PRIMARY for a domain with no custom_domain. With wildcard set, one entry covers the named domain and all its sub-domains. A wildcard needs a certificate whose TXT records the operator renews. zone is a DO-managed DNS zone, empty to point DNS yourself."
   default     = []
 
   validation {
