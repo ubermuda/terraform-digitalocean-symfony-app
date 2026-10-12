@@ -275,6 +275,22 @@ variable "domain_zone" {
   default     = ""
 }
 
+variable "extra_domains" {
+  type = list(object({
+    name     = string
+    type     = optional(string, "ALIAS")
+    wildcard = optional(bool, false)
+    zone     = optional(string, "")
+  }))
+  description = "Extra domains to attach next to custom_domain, such as a wildcard domain that serves untrusted content. type is ALIAS, or PRIMARY for a domain with no custom_domain. A wildcard needs the root domain on the app first, and a certificate whose TXT records the operator renews. zone is a DO-managed DNS zone, empty to point DNS yourself."
+  default     = []
+
+  validation {
+    condition     = alltrue([for d in var.extra_domains : contains(["ALIAS", "PRIMARY"], d.type)])
+    error_message = "Each extra domain type must be ALIAS or PRIMARY."
+  }
+}
+
 variable "default_uri" {
   type        = string
   description = "Absolute base URL for CLI-generated URLs (DEFAULT_URI). Empty to derive https://<custom_domain>. Without a custom domain, set to the assigned *.ondigitalocean.app URL after the first deploy."

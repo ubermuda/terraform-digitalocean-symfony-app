@@ -4,6 +4,15 @@ All notable changes to this module are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are the git
 tags consumers pin via `?ref=`.
 
+## [2.2.0] - 2026-10-12
+
+### Added
+
+- **`extra_domains`.** A list of extra domains to attach next to `custom_domain`.
+  Each entry takes a `name`, a `type` (`ALIAS` by default), a `wildcard` flag and
+  a `zone`. It lets a deployment serve untrusted content from a wildcard domain
+  that shares no cookie with the app. An empty list, the default, changes nothing.
+
 ## [2.1.0] - 2026-08-15
 
 ### Fixed

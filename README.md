@@ -177,6 +177,7 @@ The image is **not** built by App Platform — build and push it yourself (e.g. 
 | `worker_instance_size_slug` | | `""` (= `instance_size_slug`) | Instance size for the worker |
 | `worker_instance_count` | | `1` | Number of worker instances |
 | `custom_domain` / `domain_zone` / `default_uri` | | `""` | Optional custom domain |
+| `extra_domains` | | `[]` | Extra domains next to `custom_domain`, each with `name`, `type` (`ALIAS` by default), `wildcard` and `zone` |
 | `extra_env` | | `{}` | Project-specific env passthrough |
 
 See `variables.tf` for the full list and descriptions. Outputs: `app_id`,
