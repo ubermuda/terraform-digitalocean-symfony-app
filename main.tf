@@ -295,6 +295,7 @@ resource "digitalocean_app" "app" {
         name               = "migrate"
         kind               = "PRE_DEPLOY"
         instance_size_slug = var.instance_size_slug
+        instance_count     = 1
         run_command        = var.migration_command
 
         image {
