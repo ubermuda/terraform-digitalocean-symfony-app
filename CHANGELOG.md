@@ -4,6 +4,15 @@ All notable changes to this module are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are the git
 tags consumers pin via `?ref=`.
 
+## [Unreleased]
+
+### Fixed
+
+- **The migration job no longer shows drift on every plan.** DigitalOcean
+  returns `instance_count = 1` for a job, and the module declared none, so each
+  plan proposed `instance_count = 1 -> null`. The job now declares
+  `instance_count = 1`, which is the value it already ran with.
+
 ## [2.2.0] - 2026-10-12
 
 ### Added
