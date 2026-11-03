@@ -6,6 +6,8 @@ tags consumers pin via `?ref=`.
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-11-03
+
 ### Fixed
 
 - **The uptime alert no longer shows drift on every plan.** DigitalOcean returns
