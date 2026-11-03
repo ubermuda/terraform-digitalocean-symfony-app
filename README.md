@@ -137,6 +137,11 @@ own) and [`examples/dedicated-cluster/`](examples/dedicated-cluster).
   database attached as component `db`, an optional custom domain, an
   **opt-in** `PRE_DEPLOY` migration job, and an **opt-in background worker**
   component (same image, running `worker_command`).
+- **Alerts**: `DEPLOYMENT_FAILED` and `DOMAIN_FAILED` go to the team's default
+  email unless `app_alert_rules` says otherwise. Setting `uptime_alert_emails`
+  also adds an **opt-in uptime check** on the app's domain. It runs on
+  DigitalOcean, so add an outside monitor if you need cover for a
+  DigitalOcean-wide outage.
 
 The image is **not** built by App Platform — build and push it yourself (e.g. a
 `just build-prod` recipe) and point `registry_*` / `image_*` at it.
@@ -179,6 +184,8 @@ The image is **not** built by App Platform — build and push it yourself (e.g. 
 | `custom_domain` / `domain_zone` / `default_uri` | | `""` | Optional custom domain |
 | `extra_domains` | | `[]` | Extra domains next to `custom_domain`, each with `name`, `type` (`ALIAS` by default), `wildcard` and `zone` |
 | `extra_env` | | `{}` | Project-specific env passthrough |
+| `app_alert_rules` | | `["DEPLOYMENT_FAILED", "DOMAIN_FAILED"]` | App Platform alerts, sent to the team's default email. `[]` for none |
+| `uptime_alert_emails` | | `[]` | Who to notify when the app is down. Empty creates no uptime check |
 
 See `variables.tf` for the full list and descriptions. Outputs: `app_id`,
 `live_url`, `default_ingress`, `db_cluster_id`, `db_cluster_name`,

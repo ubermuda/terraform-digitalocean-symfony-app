@@ -404,3 +404,17 @@ variable "mercure_extra_directives" {
   default     = ""
   description = "Extra Caddy directives for the hub (MERCURE_EXTRA_DIRECTIVES), e.g. cors_origins. Empty leaves the image defaults."
 }
+
+# ── Alerts ────────────────────────────────────────────────────────────────
+
+variable "app_alert_rules" {
+  type        = list(string)
+  default     = ["DEPLOYMENT_FAILED", "DOMAIN_FAILED"]
+  description = "App Platform alert rules. Notifications go to the team's default email. An empty list adds no alerts."
+}
+
+variable "uptime_alert_emails" {
+  type        = list(string)
+  default     = []
+  description = "Addresses to notify when the app is down from every checked region. Empty creates no uptime check. DigitalOcean may require addresses verified on the account."
+}

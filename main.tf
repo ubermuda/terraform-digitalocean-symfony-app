@@ -240,6 +240,14 @@ resource "digitalocean_app" "app" {
       }
     }
 
+    # Without a destinations block these go to the team's default email.
+    dynamic "alert" {
+      for_each = toset(var.app_alert_rules)
+      content {
+        rule = alert.value
+      }
+    }
+
     dynamic "env" {
       for_each = local.app_env
       content {
@@ -443,5 +451,30 @@ resource "digitalocean_app" "app" {
       db_name      = digitalocean_database_db.app.name
       db_user      = digitalocean_database_user.app.name
     }
+  }
+}
+
+# ── Uptime monitoring (opt-in) ───────────────────────────────────────────────
+# Catches outages that do not come from a deploy. Runs on DigitalOcean, so it
+# is not independent of a DigitalOcean-wide outage.
+resource "digitalocean_uptime_check" "app" {
+  count = length(var.uptime_alert_emails) > 0 ? 1 : 0
+
+  name    = "${var.app_name}-uptime"
+  type    = "https"
+  target  = digitalocean_app.app.live_url
+  regions = ["us_east", "us_west", "eu_west"]
+}
+
+resource "digitalocean_uptime_alert" "app_down" {
+  count = length(var.uptime_alert_emails) > 0 ? 1 : 0
+
+  check_id = digitalocean_uptime_check.app[0].id
+  name     = "${var.app_name}-down"
+  type     = "down_global"
+  period   = "5m"
+
+  notifications {
+    email = var.uptime_alert_emails
   }
 }
