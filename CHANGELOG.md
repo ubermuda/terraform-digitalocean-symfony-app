@@ -6,6 +6,15 @@ tags consumers pin via `?ref=`.
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-11-03
+
+### Fixed
+
+- **The uptime alert no longer shows drift on every plan.** DigitalOcean returns
+  `comparison = "less_than"` and `threshold = 1` for a `down_global` alert, and
+  the module declared neither, so each plan proposed removing them. The module
+  now declares those values.
+
 ## [2.3.0] - 2026-11-03
 
 ### Added

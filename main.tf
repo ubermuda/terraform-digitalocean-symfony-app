@@ -474,6 +474,11 @@ resource "digitalocean_uptime_alert" "app_down" {
   type     = "down_global"
   period   = "5m"
 
+  # What DigitalOcean returns for this alert type. Left out, every plan
+  # proposes removing them.
+  comparison = "less_than"
+  threshold  = 1
+
   notifications {
     email = var.uptime_alert_emails
   }
