@@ -6,6 +6,8 @@ tags consumers pin via `?ref=`.
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-03
+
 ### Added
 
 - **Alerts when a deploy fails or the app goes down.** `app_alert_rules` adds
@@ -13,6 +15,8 @@ tags consumers pin via `?ref=`.
   to the team's default email. Set it to `[]` to keep the old behaviour.
   `uptime_alert_emails` adds an uptime check on the app's domain and notifies
   those addresses. It is empty by default, which creates no check.
+
+## [2.2.1] - 2026-10-29
 
 ### Fixed
 
